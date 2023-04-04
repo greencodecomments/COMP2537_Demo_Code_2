@@ -13,7 +13,7 @@ const port = process.env.PORT || 3000;
 const app = express();
 
 const Joi = require("joi");
-
+const mongoSanitize = require('express-mongo-sanitize');
 
 const expireTime = 24 * 60 * 60 * 1000; //expires after 1 day  (hours * minutes * seconds * millis)
 
@@ -32,6 +32,18 @@ var {database} = include('databaseConnection');
 const userCollection = database.db(mongodb_database).collection('users');
 
 app.use(express.urlencoded({extended: false}));
+
+app.use(mongoSanitize(
+    //{replaceWith: '%'}
+));
+
+// app.use(
+//     mongoSanitize({
+//       onSanitize: ({ req, key }) => {
+//         console.warn(`This request[${key}] is sanitized`);
+//       },
+//     }),
+//   );
 
 var mongoStore = MongoStore.create({
 	mongoUrl: `mongodb+srv://${mongodb_user}:${mongodb_password}@${mongodb_host}/sessions`,
@@ -53,33 +65,57 @@ app.get('/', (req,res) => {
 });
 
 app.get('/nosql-injection', async (req,res) => {
-	var username = req.query.user;
+	var name = req.query.user;
 
-	if (!username) {
+	if (!name) {
 		res.send(`<h3>no user provided - try /nosql-injection?user=name</h3> <h3>or /nosql-injection?user[$ne]=name</h3>`);
 		return;
 	}
-	console.log("user: "+username);
+	//console.log("user: "+name);
 
-	const schema = Joi.string().max(20).required();
-	const validationResult = schema.validate(username);
+	const schema = Joi.string().max(100).required();
+	const validationResult = schema.validate(name);
 
+    var invalid = false;
 	//If we didn't use Joi to validate and check for a valid URL parameter below
 	// we could run our userCollection.find and it would be possible to attack.
 	// A URL parameter of user[$ne]=name would get executed as a MongoDB command
 	// and may result in revealing information about all users or a successful
 	// login without knowing the correct password.
-	if (validationResult.error != null) {  
-	   console.log(validationResult.error);
-	   res.send("<h1 style='color:darkred;'>A NoSQL injection attack was detected!!</h1>");
-	   return;
+	if (validationResult.error != null) { 
+        invalid = true;
+	    console.log(validationResult.error);
+	//    res.send("<h1 style='color:darkred;'>A NoSQL injection attack was detected!!</h1>");
+	//    return;
 	}	
+    var numRows = -1;
+    //var numRows2 = -1;
+    try {
+    	const result = await userCollection.find({name: name}).project({username: 1, password: 1, _id: 1}).toArray();
+    	//const result2 = await userCollection.find("{name: "+name).project({username: 1, password: 1, _id: 1}).toArray(); //mongoDB already prevents using catenated strings like this
+        //console.log(result);
+        numRows = result.length;
+        //numRows2 = result2.length;
+    }
+    catch (err) {
+        console.log(err);
+        res.send(`<h1>Error querying db</h1>`);
+        return;
+    }
 
-	const result = await userCollection.find({username: username}).project({username: 1, password: 1, _id: 1}).toArray();
+    console.log(`invalid: ${invalid} - numRows: ${numRows} - user: `,name);
 
-	console.log(result);
+    // var query = {
+    //     $where: "this.name === '" + req.body.username + "'"
+    // }
 
-    res.send(`<h1>Hello ${username}</h1>`);
+    // const result2 = await userCollection.find(query).toArray(); //$where queries are not allowed.
+    
+    // console.log(result2);
+
+    res.send(`<h1>Hello</h1> <h3> num rows: ${numRows}</h3>`); 
+    //res.send(`<h1>Hello</h1>`);
+
 });
 
 app.get('/about', (req,res) => {
@@ -164,6 +200,7 @@ app.post('/submitUser', async (req,res) => {
     var html = "successfully created user";
     res.send(html);
 });
+    
 
 app.post('/loggingin', async (req,res) => {
     var username = req.body.username;
