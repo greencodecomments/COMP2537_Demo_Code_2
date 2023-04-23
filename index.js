@@ -31,6 +31,8 @@ var {database} = include('databaseConnection');
 
 const userCollection = database.db(mongodb_database).collection('users');
 
+app.set('view engine', 'ejs');
+
 app.use(express.urlencoded({extended: false}));
 
 var mongoStore = MongoStore.create({
@@ -49,7 +51,7 @@ app.use(session({
 ));
 
 app.get('/', (req,res) => {
-    res.send("<h1>Hello World!</h1>");
+    res.render("index");
 });
 
 app.get('/nosql-injection', async (req,res) => {
