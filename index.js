@@ -87,22 +87,13 @@ app.get('/nosql-injection', async (req,res) => {
 app.get('/about', (req,res) => {
     var color = req.query.color;
 
-    res.send("<h1 style='color:"+color+";'>Patrick Guichon</h1>");
+    res.render("about", {color: color});
 });
 
 app.get('/contact', (req,res) => {
     var missingEmail = req.query.missing;
-    var html = `
-        email address:
-        <form action='/submitEmail' method='post'>
-            <input name='email' type='text' placeholder='email'>
-            <button>Submit</button>
-        </form>
-    `;
-    if (missingEmail) {
-        html += "<br> email is required";
-    }
-    res.send(html);
+
+    res.render("contact", {missing: missingEmail});
 });
 
 app.post('/submitEmail', (req,res) => {
@@ -111,34 +102,18 @@ app.post('/submitEmail', (req,res) => {
         res.redirect('/contact?missing=1');
     }
     else {
-        res.send("Thanks for subscribing with your email: "+email);
+        res.render("submitEmail", {email: email});
     }
 });
 
 
 app.get('/createUser', (req,res) => {
-    var html = `
-    create user
-    <form action='/submitUser' method='post'>
-    <input name='username' type='text' placeholder='username'>
-    <input name='password' type='password' placeholder='password'>
-    <button>Submit</button>
-    </form>
-    `;
-    res.send(html);
+    res.render("createUser");
 });
 
 
 app.get('/login', (req,res) => {
-    var html = `
-    log in
-    <form action='/loggingin' method='post'>
-    <input name='username' type='text' placeholder='username'>
-    <input name='password' type='password' placeholder='password'>
-    <button>Submit</button>
-    </form>
-    `;
-    res.send(html);
+    res.render("login");
 });
 
 app.post('/submitUser', async (req,res) => {
@@ -164,7 +139,7 @@ app.post('/submitUser', async (req,res) => {
 	console.log("Inserted user");
 
     var html = "successfully created user";
-    res.send(html);
+    res.render("submitUser", {html: html});
 });
 
 app.post('/loggingin', async (req,res) => {
@@ -207,34 +182,19 @@ app.get('/loggedin', (req,res) => {
     if (!req.session.authenticated) {
         res.redirect('/login');
     }
-    var html = `
-    You are logged in!
-    `;
-    res.send(html);
+    res.render("loggedin");
 });
 
 app.get('/logout', (req,res) => {
 	req.session.destroy();
-    var html = `
-    You are logged out.
-    `;
-    res.send(html);
+    res.render("loggedout");
 });
 
 
 app.get('/cat/:id', (req,res) => {
-
     var cat = req.params.id;
 
-    if (cat == 1) {
-        res.send("Fluffy: <img src='/fluffy.gif' style='width:250px;'>");
-    }
-    else if (cat == 2) {
-        res.send("Socks: <img src='/socks.gif' style='width:250px;'>");
-    }
-    else {
-        res.send("Invalid cat id: "+cat);
-    }
+    res.render("cat", {cat: cat});
 });
 
 
@@ -242,7 +202,7 @@ app.use(express.static(__dirname + "/public"));
 
 app.get("*", (req,res) => {
 	res.status(404);
-	res.send("Page not found - 404");
+	res.render("404");
 })
 
 app.listen(port, () => {
