@@ -50,6 +50,23 @@ app.use(session({
 }
 ));
 
+function isValidSession(req) {
+    if (req.session.authenticated) {
+        return true;
+    }
+    return false;
+}
+
+function sessionValidation(req,res,next) {
+    if (isValidSession(req)) {
+        next();
+    }
+    else {
+        res.redirect('/login');
+    }
+}
+
+
 app.get('/', (req,res) => {
     res.render("index");
 });
@@ -178,11 +195,16 @@ app.post('/loggingin', async (req,res) => {
 	}
 });
 
+app.use('/loggedin', sessionValidation);
 app.get('/loggedin', (req,res) => {
     if (!req.session.authenticated) {
         res.redirect('/login');
     }
     res.render("loggedin");
+});
+
+app.get('/loggedin/info', (req,res) => {
+    res.render("loggedin-info");
 });
 
 app.get('/logout', (req,res) => {
@@ -197,7 +219,8 @@ app.get('/cat/:id', (req,res) => {
     res.render("cat", {cat: cat});
 });
 
-app.get('/admin', async (req,res) => {
+
+app.get('/admin', sessionValidation, async (req,res) => {
     const result = await userCollection.find().project({username: 1, _id: 1}).toArray();
  
     res.render("admin", {users: result});
