@@ -1,3 +1,18 @@
+v1.15 - Rendering Templates
+===========================
+In this commit we are adding an admin page to show all the users in the database.
+We query the database and get all the users (we don't filter or sort them).
+Then we render the admin page and pass the users array to the view.
+In our admin.ejs we loop over the users array and include the user template.
+
+- To Test:
+Admin view of all users: http://localhost:3000/admin
+
+- Notes:
+There are a few problems with the admin page as it is now: (we'll fix these later)
+1. It's not secure. Anyone can go to the admin page and see all the users.
+2. Even if you were logged in, you should only be able to see the admin page if you are an admin.
+
 v1.14 - Refactoring and more rendering
 ==============================
 Let's replace all the res.send() calls with res.render.
